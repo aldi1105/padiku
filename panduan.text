@@ -1,2 +1,24 @@
+1.notifikasi baru dibuat berita artikel dan peringatan cuaca,sistem keamanan 
+untuk notifikasi promo toko menunggua tokonya dulu 
+2.Halaman Kebijakan Privasi sudah ada 
+3.Halaman Pusat Bantuan sudah ada
 #ganti ip
 tampilan Login dan Register
+
+---
+# Halaman yang tombol/menunya sudah ada di UI tapi belum dibuat halamannya (Missing Screens):
+
+1. Halaman Lupa Kata Sandi (Forgot Password)
+   - Lokasi: Ada tombol "Lupa Kata Sandi?" di halaman `login_screen.dart`.
+   - Status: Saat diklik belum mengarah ke mana-mana (onTap masih kosong).
+
+2. Halaman Pusat Bantuan (Help Center)
+   - Lokasi: Ada menu "Pusat Bantuan" di halaman `profile_screen.dart`.
+   - Status: Saat diklik belum mengarah ke mana-mana, dan file screen-nya belum ada.
+
+3. Halaman Kebijakan Privasi (Privacy Policy)
+   - Lokasi: Ada menu "Kebijakan Privasi" di halaman `profile_screen.dart`.
+   - Status: Saat diklik belum mengarah ke mana-mana, dan file screen-nya belum ada.
+
+# Catatan Tambahan (Fitur belum terhubung):
+- Tombol "Scan Sekarang" di banner halaman `dashboard_screen.dart` saat ini `onTap`-nya masih kosong, padahal halaman `scan_screen.dart`-nya sudah dibuat (biasanya diakses dari tombol tengah di menu bawah). Anda mungkin ingin menyambungkan tombol ini juga.

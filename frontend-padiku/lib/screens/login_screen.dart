@@ -1,3 +1,4 @@
+import 'package:padiku/services/auth_services.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -11,6 +12,7 @@ import '../widgets/rice_plant_widget.dart';
 import 'register_screen.dart';
 import 'main_navigation.dart';
 import 'splash_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -58,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen>
       // Start polling every 3 seconds
       _statusTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
         try {
-          String baseUrl = 'http://192.168.100.56:8000';
+          String baseUrl = AuthServices.baseUrl;
           final response = await http.get(Uri.parse('$baseUrl/api/check-status/$_pendingEmail'));
           if (response.statusCode == 200) {
             final data = jsonDecode(response.body);
@@ -160,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 48),
-                    // ── Welcome to ──────────────────────────────
+                    // â”€â”€ Welcome to â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: Align(
@@ -177,13 +179,13 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // ── PADIKU Logo ──────────────────────────────
+                    // â”€â”€ PADIKU Logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: _buildLogo(),
                     ),
                     const SizedBox(height: 40),
-                    // ── Form Card ────────────────────────────────
+                    // â”€â”€ Form Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     SlideTransition(
                       position: _slideAnimation,
                       child: FadeTransition(
@@ -192,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ),
                     const SizedBox(height: 48),
-                    // ── Footer ──────────────────────────────────
+                    // â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: Row(
@@ -285,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen>
       ),
       child: Column(
         children: [
-          // ── Pill Header ──────────────────────────────────────
+          // â”€â”€ Pill Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -324,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen>
           _buildField(
             controller: _passwordController,
             label: 'Kata Sandi',
-            hint: '••••••••',
+            hint: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢',
             obscure: _obscurePassword,
             suffix: GestureDetector(
               onTap: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -341,7 +343,14 @@ class _LoginScreenState extends State<LoginScreen>
           Align(
             alignment: Alignment.centerRight,
             child: GestureDetector(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ForgotPasswordScreen(),
+                  ),
+                );
+              },
               child: Text(
                 'Lupa Kata Sandi?',
                 style: GoogleFonts.outfit(
@@ -381,7 +390,7 @@ class _LoginScreenState extends State<LoginScreen>
                   const SnackBar(content: Text('Memproses login...')),
                 );
 
-                String baseUrl = 'http://192.168.100.56:8000'; // IP WiFi Laptop Anda
+                String baseUrl = AuthServices.baseUrl; // IP WiFi Laptop Anda
                 final response = await http.post(
                   Uri.parse('$baseUrl/api/login'),
                   headers: {'Content-Type': 'application/json'},

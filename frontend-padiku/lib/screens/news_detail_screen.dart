@@ -1,3 +1,4 @@
+import 'package:padiku/services/auth_services.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -35,7 +36,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.100.56:8000/api/news-content'),
+        Uri.parse('${AuthServices.baseUrl}/api/news-content'),
         body: {'url': link},
       );
 

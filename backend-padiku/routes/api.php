@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Notifications\GeneralNotification;
 
 // --- PUBLIC ROUTES ---
 Route::post('/register', function (Request $request) {
@@ -71,11 +72,19 @@ Route::get('/news', function (Request $request) {
             $keywords = ['padi', 'beras', 'gabah', 'sawah', 'petani', 'panen', 'pupuk', 'bulog', 'pertanian', 'pangan', 'kementan', 'karawang'];
             $items = [];
             
-            foreach ($sources as $source) {
-                $xml = @file_get_contents($source);
-                if ($xml) {
+            // Ambil semua sumber RSS secara paralel (asinkron) dengan timeout 3 detik
+            $responses = Illuminate\Support\Facades\Http::pool(function (Illuminate\Http\Client\Pool $pool) use ($sources) {
+                return array_map(function ($source) use ($pool) {
+                    return $pool->timeout(3)->connectTimeout(3)->get($source);
+                }, $sources);
+            });
+            
+            foreach ($responses as $index => $response) {
+                if ($response->successful()) {
+                    $xml = $response->body();
                     $rss = @simplexml_load_string($xml);
                     if ($rss && $rss->channel && $rss->channel->item) {
+                        $source = $sources[$index];
                         foreach($rss->channel->item as $item) {
                             $timestamp = strtotime((string) $item->pubDate);
                             $title = strtolower((string) $item->title);
@@ -458,11 +467,30 @@ Route::middleware('auth:sanctum')->group(function () {
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
             'bio' => 'nullable|string',
+            'email' => 'nullable|string|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20|unique:users,phone,' . $user->id,
             'profile_picture' => 'nullable|image|max:2048' // max 2MB
         ]);
 
         if ($validator->fails()) {
             return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
+        }
+
+        if ($request->exists('email') || $request->exists('phone')) {
+            $isVerified = \Illuminate\Support\Facades\Cache::get('verified_' . $user->id);
+            if (!$isVerified) {
+                $isChangingExistingEmail = $request->exists('email') && !empty($user->email) && $user->email !== strtolower(trim($request->input('email')));
+                $isChangingExistingPhone = $request->exists('phone') && !empty($user->phone) && $user->phone !== trim(strip_tags($request->input('phone')));
+                
+                if ($isChangingExistingEmail || $isChangingExistingPhone) {
+                    return response()->json([
+                        'success' => false, 
+                        'message' => 'Anda harus melakukan verifikasi OTP terlebih dahulu sebelum mengubah kontak.'
+                    ], 403);
+                }
+            } else {
+                \Illuminate\Support\Facades\Cache::forget('verified_' . $user->id);
+            }
         }
 
         if ($request->hasFile('profile_picture')) {
@@ -484,12 +512,20 @@ Route::middleware('auth:sanctum')->group(function () {
         if ($request->exists('latitude')) $updateData['latitude'] = $request->input('latitude');
         if ($request->exists('longitude')) $updateData['longitude'] = $request->input('longitude');
         if ($request->exists('bio')) $updateData['bio'] = $request->input('bio');
+        if ($request->exists('email')) $updateData['email'] = strtolower(trim($request->input('email')));
+        if ($request->exists('phone')) $updateData['phone'] = trim(strip_tags($request->input('phone')));
         
         if (!empty($updateData)) {
             $user->update($updateData);
         }
 
         $user->save();
+
+        $settings = is_string($user->notification_settings) ? json_decode($user->notification_settings, true) : $user->notification_settings;
+        if (!is_array($settings)) $settings = [];
+        if (!empty($updateData) && !($settings['pause_all'] ?? false) && ($settings['system'] ?? true)) {
+            $user->notify(new GeneralNotification('Sistem', 'Data profil Anda berhasil diperbarui.', 'system'));
+        }
 
         $userData = $user->toArray();
         if ($user->profile_picture) {
@@ -528,9 +564,155 @@ Route::middleware('auth:sanctum')->group(function () {
         $user->password = Hash::make($request->new_password);
         $user->save();
 
+        $settings = is_string($user->notification_settings) ? json_decode($user->notification_settings, true) : $user->notification_settings;
+        if (!is_array($settings)) $settings = [];
+        if (!($settings['pause_all'] ?? false) && ($settings['system'] ?? true)) {
+            $user->notify(new GeneralNotification('Keamanan Akun', 'Kata sandi Anda baru saja diubah. Jika ini bukan Anda, segera hubungi admin.', 'system'));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Password berhasil diubah!'
+        ]);
+    });
+
+    Route::post('/user/notification-settings', function (Request $request) {
+        $user = clone $request->user();
+        
+        $validator = Validator::make($request->all(), [
+            'notification_settings' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        $user->notification_settings = $request->notification_settings;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengaturan notifikasi berhasil disimpan',
+            'data' => $user->notification_settings
+        ]);
+    });
+
+    Route::get('/user/notifications', function (Request $request) {
+        $notifications = $request->user()->notifications;
+        
+        $formatted = $notifications->map(function ($notif) {
+            $diff = $notif->created_at->diff(now());
+            if ($diff->d > 0) {
+                $time = $diff->d . 'd';
+            } elseif ($diff->h > 0) {
+                $time = $diff->h . 'h';
+            } elseif ($diff->i > 0) {
+                $time = $diff->i . 'm';
+            } else {
+                $time = 'now';
+            }
+
+            return [
+                'id' => $notif->id,
+                'title' => $notif->data['title'] ?? '',
+                'text' => $notif->data['message'] ?? '',
+                'type' => $notif->data['type'] ?? 'system',
+                'time' => $time,
+                'isNew' => is_null($notif->read_at),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $formatted
+        ]);
+    });
+
+    Route::post('/user/notifications/{id}/read', function (Request $request, $id) {
+        $notification = $request->user()->notifications()->where('id', $id)->first();
+        if ($notification) {
+            $notification->markAsRead();
+        }
+        return response()->json(['success' => true]);
+    });
+
+    Route::delete('/user/notifications/{id}', function (Request $request, $id) {
+        $notification = $request->user()->notifications()->where('id', $id)->first();
+        if ($notification) {
+            $notification->delete();
+        }
+        return response()->json(['success' => true]);
+    });
+
+    Route::post('/user/request-otp', function (Request $request) {
+        $request->validate([
+            'type' => 'required|in:email,phone',
+        ]);
+
+        $user = $request->user();
+        $target = $request->type === 'email' ? $user->email : $user->phone;
+
+        if (empty($target)) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Anda belum mengatur ' . $request->type . ' sebelumnya.'
+            ], 400);
+        }
+
+        $otp = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
+        
+        // Store OTP in cache for 10 minutes
+        \Illuminate\Support\Facades\Cache::put('security_otp_' . $user->id, [
+            'code' => $otp,
+            'type' => $request->type,
+        ], now()->addMinutes(10));
+
+        if ($request->type === 'email') {
+            try {
+                \Illuminate\Support\Facades\Mail::to($target)->send(new \App\Mail\SecurityOtpMail($otp, $request->type));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Gagal mengirim email OTP: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP berhasil dikirim ke ' . $target
+        ]);
+    });
+
+    Route::post('/user/verify-otp', function (Request $request) {
+        $request->validate([
+            'otp' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        $cachedOtp = \Illuminate\Support\Facades\Cache::get('security_otp_' . $user->id);
+
+        if (!$cachedOtp) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode OTP kadaluarsa atau tidak ditemukan'
+            ], 400);
+        }
+
+        if ($cachedOtp['code'] !== $request->otp) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode OTP salah'
+            ], 400);
+        }
+
+        // Beri tanda bahwa user sudah diverifikasi (berlaku 15 menit)
+        \Illuminate\Support\Facades\Cache::put('verified_' . $user->id, true, now()->addMinutes(15));
+        \Illuminate\Support\Facades\Cache::forget('security_otp_' . $user->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verifikasi berhasil'
         ]);
     });
 
@@ -560,36 +742,127 @@ Route::middleware('auth:sanctum')->group(function () {
     // Anda bisa tambahkan fitur tambah pesanan dll di sini yang butuh ID user
 });
 
-// Endpoint untuk Request OTP (Dummy)
-Route::post('/request-otp', function (Request $request) {
-    $request->validate([
-        'phone' => 'required|string|max:20',
-    ]);
-    
-    // Dalam implementasi nyata, di sini akan menggunakan layanan seperti Twilio atau WhatsApp API
-    // Untuk pengembangan, kita asumsikan kode OTP selalu "123456"
-    return response()->json([
-        'success' => true,
-        'message' => 'Kode OTP telah dikirim ke nomor ' . $request->phone . ' (Dummy: 123456)'
-    ]);
-});
-
-// Endpoint untuk Verifikasi OTP (Dummy)
-Route::post('/verify-otp', function (Request $request) {
-    $request->validate([
-        'phone' => 'required|string|max:20',
-        'otp' => 'required|string|size:6',
+// Endpoint untuk Request Lupa Password via OTP
+Route::post('/forgot-password/request-otp', function (Request $request) {
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email|exists:users,email',
+    ], [
+        'exists' => 'Email ini tidak terdaftar di sistem.'
     ]);
 
-    if ($request->otp === '123456') {
+    if ($validator->fails()) {
         return response()->json([
-            'success' => true,
-            'message' => 'Nomor HP berhasil diverifikasi.'
-        ]);
+            'success' => false,
+            'message' => $validator->errors()->first()
+        ], 422);
+    }
+
+    $otp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+    $email = strtolower(trim($request->email));
+    
+    // Simpan OTP ke database
+    \App\Models\Otp::updateOrCreate(
+        ['identifier' => $email],
+        [
+            'token' => $otp,
+            'expires_at' => now()->addMinutes(10)
+        ]
+    );
+
+    try {
+        \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\ForgotPasswordOtpMail($otp));
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('Gagal mengirim email OTP: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengirim email, silakan coba lagi.'
+        ], 500);
     }
 
     return response()->json([
-        'success' => false,
-        'message' => 'Kode OTP tidak valid.'
-    ], 400);
+        'success' => true,
+        'message' => 'Kode OTP pemulihan telah dikirim.'
+    ]);
+});
+
+Route::post('/forgot-password/verify-otp', function (Request $request) {
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email',
+        'otp' => 'required|string|size:6',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => $validator->errors()->first()
+        ], 422);
+    }
+
+    $email = strtolower(trim($request->email));
+    
+    $otpRecord = \App\Models\Otp::where('identifier', $email)
+        ->where('token', $request->otp)
+        ->first();
+
+    if (!$otpRecord) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Kode OTP tidak valid.'
+        ], 400);
+    }
+
+    if (now()->greaterThan($otpRecord->expires_at)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Kode OTP telah kedaluwarsa.'
+        ], 400);
+    }
+
+    // Jika valid, kita bisa mengembalikan success.
+    // Frontend akan mengizinkan masuk ke layar Reset Password dengan membawa email.
+    return response()->json([
+        'success' => true,
+        'message' => 'Kode OTP valid.'
+    ]);
+});
+
+Route::post('/forgot-password/reset', function (Request $request) {
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email|exists:users,email',
+        'password' => 'required|string|min:8|confirmed',
+        'otp' => 'required|string|size:6',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => $validator->errors()->first()
+        ], 422);
+    }
+
+    $email = strtolower(trim($request->email));
+
+    // Verifikasi OTP sekali lagi sebelum reset
+    $otpRecord = \App\Models\Otp::where('identifier', $email)
+        ->where('token', $request->otp)
+        ->first();
+
+    if (!$otpRecord || now()->greaterThan($otpRecord->expires_at)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Sesi kedaluwarsa atau OTP tidak valid. Ulangi proses.'
+        ], 400);
+    }
+
+    $user = User::where('email', $email)->first();
+    $user->password = Hash::make($request->password);
+    $user->save();
+
+    // Hapus OTP setelah berhasil
+    $otpRecord->delete();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Kata sandi berhasil diatur ulang.'
+    ]);
 });

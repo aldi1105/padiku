@@ -1,3 +1,4 @@
+import 'package:padiku/services/auth_services.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -31,6 +32,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   
   List<dynamic> _trendingNews = [];
   bool _isLoadingNews = true;
+  bool _hasUnreadNotifications = false;
   
   // Weather state
   String _currentCity = 'Karawang';
@@ -41,7 +43,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _weatherDesc = 'Memuat cuaca...';
   String _weatherIcon = '01d';
   bool _isLoadingWeather = true;
-  StreamSubscription<Position>? _positionStreamSubscription;
 
   @override
   void initState() {
@@ -51,12 +52,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) setState(() => _showWelcomePopup = true);
     });
     _fetchTrendingNews();
+    _fetchUnreadNotifications();
     _startLocationTracking();
   }
 
   @override
   void dispose() {
-    _positionStreamSubscription?.cancel();
     super.dispose();
   }
 
@@ -80,26 +81,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return;
       }
 
-      // Initial position
+      // Ambil lokasi sekali saat startup menggunakan akurasi sedang agar lebih cepat
       try {
         Position initialPos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 15),
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 8),
         );
         await _handlePositionUpdate(initialPos, isInitial: true);
       } catch (e) {
         _fetchWeather();
       }
-
-      // Start stream for live tracking
-      LocationSettings locationSettings = const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5, // Update jika pindah minimal 5 meter
-      );
-
-      _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
-        _handlePositionUpdate(position, isInitial: false);
-      });
     } catch (e) {
       _fetchWeather();
     }
@@ -152,7 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final prefs = await SharedPreferences.getInstance();
           final token = prefs.getString('token');
           if (token != null) {
-            var request = http.MultipartRequest('POST', Uri.parse('http://192.168.100.56:8000/api/user/update'));
+            var request = http.MultipartRequest('POST', Uri.parse('${AuthServices.baseUrl}/api/user/update'));
             request.headers.addAll({
               'Authorization': 'Bearer $token',
               'Accept': 'application/json',
@@ -177,7 +168,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchWeather() async {
     try {
-      String url = 'http://192.168.100.56:8000/api/weather?city=$_currentCity';
+      String url = '${AuthServices.baseUrl}/api/weather?city=$_currentCity';
       if (_currentLat != null && _currentLon != null) {
         url += '&lat=$_currentLat&lon=$_currentLon';
       }
@@ -207,9 +198,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     
     // Panggil API dengan param refresh=1
-    final fetchNews = http.get(Uri.parse('http://192.168.100.56:8000/api/news?refresh=1'));
+    final fetchNews = http.get(Uri.parse('${AuthServices.baseUrl}/api/news?refresh=1'));
     
-    String weatherUrl = 'http://192.168.100.56:8000/api/weather?city=$_currentCity&refresh=1';
+    String weatherUrl = '${AuthServices.baseUrl}/api/weather?city=$_currentCity&refresh=1';
     if (_currentLat != null && _currentLon != null) {
       weatherUrl += '&lat=$_currentLat&lon=$_currentLon';
     }
@@ -254,7 +245,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchTrendingNews() async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.100.56:8000/api/news'));
+      final response = await http.get(Uri.parse('${AuthServices.baseUrl}/api/news'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
@@ -270,6 +261,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoadingNews = false);
+    }
+  }
+
+  Future<void> _fetchUnreadNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse('${AuthServices.baseUrl}/api/user/notifications'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          final List<dynamic> notifs = data['data'];
+          if (mounted) {
+            setState(() {
+              _hasUnreadNotifications = notifs.any((n) => n['isNew'] == true);
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
     }
   }
 
@@ -330,9 +351,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ));
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Header
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildHeader(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -436,7 +457,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                       const SizedBox(width: 6),
                       Text(
-                        '$_weatherTemp°C',
+                        '$_weatherTempÂ°C',
                         style: GoogleFonts.outfit(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
@@ -457,27 +478,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(width: 12),
               GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const NotificationScreen()),
-                ),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                  );
+                  _fetchUnreadNotifications();
+                },
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     _headerIcon(Icons.notifications_rounded),
-                    Positioned(
-                      right: 2,
-                      top: 2,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppTheme.primaryGreen, width: 2),
+                    if (_hasUnreadNotifications)
+                      Positioned(
+                        right: 2,
+                        top: 2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppTheme.primaryGreen, width: 2),
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -499,9 +524,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ────────────────────────────────────────────────────────────
-  // Quick Menu  (Toko · Berita · Panduan)
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Quick Menu  (Toko Â· Berita Â· Panduan)
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildQuickMenu() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -581,9 +606,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Scan Banner
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildScanBanner() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -662,9 +687,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // News / Trending
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildNewsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -828,9 +853,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Welcome Popup (Multi-State PageView)
-  // ────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildWelcomeOverlay() {
     return Container(
       color: Colors.black54,
@@ -939,7 +964,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 16),
               FittedBox(
                 child: Text(
-                  '$_weatherTemp°C',
+                  '$_weatherTempÂ°C',
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontSize: 42,

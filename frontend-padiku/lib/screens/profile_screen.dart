@@ -1,3 +1,4 @@
+import 'package:padiku/services/auth_services.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -11,6 +12,12 @@ import 'package:geocoding/geocoding.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'change_password_screen.dart';
+import 'change_email_screen.dart';
+import 'change_phone_screen.dart';
+import 'help_center_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'notification_settings_screen.dart';
+import 'otp_verification_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -52,7 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (token == null) return;
 
       final response = await http.get(
-        Uri.parse('http://192.168.100.56:8000/api/user'),
+        Uri.parse('${AuthServices.baseUrl}/api/user'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -100,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.100.56:8000/api/user/update'),
+        Uri.parse('${AuthServices.baseUrl}/api/user/update'),
       );
       
       request.headers.addAll({
@@ -164,7 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         var request = http.MultipartRequest(
           'POST',
-          Uri.parse('http://192.168.100.56:8000/api/user/update'),
+          Uri.parse('${AuthServices.baseUrl}/api/user/update'),
         );
         
         request.headers.addAll({
@@ -503,9 +510,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _buildInfoRow(Icons.mail_outline_rounded, 'Email', _email, fieldKey: null),
                 const Divider(color: Color(0xFFEEEEEE)),
-                _editingField == 'phone'
-                    ? _buildInlineEditCardField('phone', Icons.phone_outlined)
-                    : _buildInfoRow(Icons.phone_outlined, 'Telepon', _formatPhoneDisplay(_phone), fieldKey: 'phone'),
+                _buildInfoRow(Icons.phone_outlined, 'Telepon', _formatPhoneDisplay(_phone), fieldKey: null),
                 const Divider(color: Color(0xFFEEEEEE)),
                 // Lokasi tidak pakai inline edit, tapi panggil _fetchGPSAndSave()
                 _buildInfoRow(Icons.location_on_outlined, 'Lokasi', _location, fieldKey: 'location', onEdit: _fetchGPSAndSave),
@@ -680,12 +685,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
                   );
                 }),
+                _buildMenuItem(Icons.email_outlined, 'Ubah Email', true, onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ChangeEmailScreen(currentEmail: _email)),
+                  );
+                  if (result == true) {
+                    _fetchUserData();
+                  }
+                }),
                 const Divider(color: Color(0xFFEEEEEE), height: 1),
-                _buildMenuItem(Icons.notifications_none_rounded, 'Notifikasi', true, onTap: () {}),
+                _buildMenuItem(Icons.phone_outlined, 'Ubah Nomor HP', true, onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ChangePhoneScreen(currentPhone: _phone)),
+                  );
+                  if (result == true) {
+                    _fetchUserData();
+                  }
+                }),
                 const Divider(color: Color(0xFFEEEEEE), height: 1),
-                _buildMenuItem(Icons.help_outline_rounded, 'Pusat Bantuan', true, onTap: () {}),
+                _buildMenuItem(Icons.notifications_none_rounded, 'Notifikasi', true, onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const NotificationSettingsScreen()),
+                  );
+                }),
                 const Divider(color: Color(0xFFEEEEEE), height: 1),
-                _buildMenuItem(Icons.privacy_tip_outlined, 'Kebijakan Privasi', true, onTap: () {}),
+                _buildMenuItem(Icons.help_outline_rounded, 'Pusat Bantuan', true, onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
+                  );
+                }),
+                const Divider(color: Color(0xFFEEEEEE), height: 1),
+                _buildMenuItem(Icons.privacy_tip_outlined, 'Kebijakan Privasi', true, onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+                  );
+                }),
                 const Divider(color: Color(0xFFEEEEEE), height: 1),
                 
                 // Logout Button

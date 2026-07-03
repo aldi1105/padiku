@@ -1,3 +1,4 @@
+import 'package:padiku/services/auth_services.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ class _ShopScreenState extends State<ShopScreen> {
   Future<void> _fetchProducts() async {
     try {
       // Use WiFi IP to allow both Emulator and Physical Device to connect to local Laravel
-      String baseUrl = 'http://192.168.100.56:8000';
+      String baseUrl = '${AuthServices.baseUrl}';
       final response = await http.get(Uri.parse('$baseUrl/api/products'));
       
       if (response.statusCode == 200) {

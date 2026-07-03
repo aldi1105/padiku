@@ -1,3 +1,4 @@
+import 'package:padiku/services/auth_services.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -81,7 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 48),
-                    // ── Welcome to ──────────────────────────────
+                    // â”€â”€ Welcome to â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: Align(
@@ -98,13 +99,13 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // ── PADIKU Logo ──────────────────────────────
+                    // â”€â”€ PADIKU Logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: _buildLogo(),
                     ),
                     const SizedBox(height: 40),
-                    // ── Form Card ────────────────────────────────
+                    // â”€â”€ Form Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     SlideTransition(
                       position: _slideAnimation,
                       child: FadeTransition(
@@ -113,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ),
                     ),
                     const SizedBox(height: 48),
-                    // ── Footer ──────────────────────────────────
+                    // â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: Row(
@@ -199,7 +200,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       ),
       child: Column(
         children: [
-          // ── Pill Header ──────────────────────────────────────
+          // â”€â”€ Pill Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -245,7 +246,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           _buildField(
             controller: _passwordController,
             label: 'Kata Sandi',
-            hint: '••••••••',
+            hint: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢',
             obscure: _obscurePassword,
             suffix: GestureDetector(
               onTap: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -263,7 +264,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           _buildField(
             controller: _confirmController,
             label: 'Konfirmasi Sandi',
-            hint: '••••••••',
+            hint: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢',
             obscure: _obscureConfirm,
             suffix: GestureDetector(
               onTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
@@ -320,7 +321,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   const SnackBar(content: Text('Memproses pendaftaran...')),
                 );
 
-                String baseUrl = 'http://192.168.100.56:8000'; // IP WiFi Laptop Anda
+                String baseUrl = '${AuthServices.baseUrl}'; // IP WiFi Laptop Anda
                 final response = await http.post(
                   Uri.parse('$baseUrl/api/register'),
                   headers: {'Content-Type': 'application/json'},

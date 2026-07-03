@@ -1,3 +1,4 @@
+import 'package:padiku/services/auth_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,8 +20,8 @@ class _GuideScreenState extends State<GuideScreen> {
   String _activeCategory = 'Semua';
 
   final Map<String, String> _categoryHeaderImages = {
-    'Padi': 'http://192.168.100.56:8000/storage/backgrounds/padi_bg.jpg',
-    'Hama': 'http://192.168.100.56:8000/storage/backgrounds/hama_bg.jpg',
+    'Padi': '${AuthServices.baseUrl}/storage/backgrounds/padi_bg.jpg',
+    'Hama': '${AuthServices.baseUrl}/storage/backgrounds/hama_bg.jpg',
   };
 
   bool _isLoading = true;
@@ -33,7 +34,7 @@ class _GuideScreenState extends State<GuideScreen> {
 
   Future<void> _fetchRiceVarieties() async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.100.56:8000/api/rice-varieties'));
+      final response = await http.get(Uri.parse('${AuthServices.baseUrl}/api/rice-varieties'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> varieties = data['data'];
@@ -55,7 +56,7 @@ class _GuideScreenState extends State<GuideScreen> {
               : 'Padi ${v['name']?.toString() ?? ''}',
           'category': 'Padi',
           'imageUrl': (v['image'] != null && v['image'].toString().isNotEmpty) 
-              ? 'http://192.168.100.56:8000/storage/${v['image']}'
+              ? '${AuthServices.baseUrl}/storage/${v['image']}'
               : _getImageForGroup(v['group']?.toString() ?? ''),
           'description': 'Kelompok: ${v['group'] ?? '-'}\nEkosistem: ${v['ecosystem'] ?? '-'}\nPotensi Hasil: ${v['yield_potential'] ?? '-'} Ton/Ha\nUmur Tanaman: ${v['plant_age'] ?? '-'} Hari\nTekstur Nasi: ${v['texture'] ?? '-'}\nKetahanan Hama: ${v['pest_resistance'] ?? '-'}\nRekomendasi: ${v['region_recommendation'] ?? '-'}',
           'metric1_title': 'Potensi Hasil',
@@ -67,7 +68,7 @@ class _GuideScreenState extends State<GuideScreen> {
         }).toList();
 
         // Fetch Hama (Diseases)
-        final hamaResponse = await http.get(Uri.parse('http://192.168.100.56:8000/api/diseases'));
+        final hamaResponse = await http.get(Uri.parse('${AuthServices.baseUrl}/api/diseases'));
         List<Map<String, String>> fetchedHama = [];
         if (hamaResponse.statusCode == 200) {
           final hamaData = json.decode(hamaResponse.body);
@@ -77,7 +78,7 @@ class _GuideScreenState extends State<GuideScreen> {
             'title': d['name']?.toString() ?? '',
             'category': 'Hama',
             'imageUrl': (d['image'] != null && d['image'].toString().isNotEmpty)
-                ? 'http://192.168.100.56:8000/storage/${d['image']}'
+                ? '${AuthServices.baseUrl}/storage/${d['image']}'
                 : 'https://images.unsplash.com/photo-1585314062340-f1a5a7c9328d?w=800&fit=crop',
             'description': '${d['description'] ?? '-'}\n\nSolusi:\n${d['solution'] ?? '-'}',
             'metric1_title': 'Tingkat Bahaya',

@@ -1,3 +1,4 @@
+import 'package:padiku/services/auth_services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -53,7 +54,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
 
   Future<void> _fetchForecast() async {
     try {
-      String url = 'http://192.168.100.56:8000/api/weather-forecast?city=${widget.city}';
+      String url = '${AuthServices.baseUrl}/api/weather-forecast?city=${widget.city}';
       if (widget.lat != null && widget.lon != null) {
         url += '&lat=${widget.lat}&lon=${widget.lon}';
       }
@@ -220,7 +221,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${widget.temp}°',
+                  '${widget.temp}Â°',
                   style: GoogleFonts.outfit(
                     fontSize: 80,
                     fontWeight: FontWeight.w900,
@@ -249,9 +250,9 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          Expanded(child: _tempCapsule('Tertinggi: 35°C')),
+          Expanded(child: _tempCapsule('Tertinggi: 35Â°C')),
           const SizedBox(width: 12),
-          Expanded(child: _tempCapsule('Terendah: 24°C')),
+          Expanded(child: _tempCapsule('Terendah: 24Â°C')),
         ],
       ),
     );
@@ -329,7 +330,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '${data['temperature']}°C',
+                  '${data['temperature']}Â°C',
                   style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
                 ),
               ],
@@ -409,7 +410,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                     child: _dailyForecastCard(
                       isToday ? 'Hari Ini' : dayName,
                       'http://openweathermap.org/img/wn/${day['icon']}@2x.png',
-                      '${day['temperature']}°C',
+                      '${day['temperature']}Â°C',
                       day['description'],
                       isToday,
                     ),

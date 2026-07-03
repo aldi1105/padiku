@@ -17,6 +17,11 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+    
+    project.configurations.configureEach {
+        resolutionStrategy.force("androidx.concurrent:concurrent-futures:1.1.0")
+        resolutionStrategy.force("com.google.guava:guava:31.1-android")
+    }
 }
 
 tasks.register<Delete>("clean") {

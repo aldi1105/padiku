@@ -27,7 +27,7 @@
                     <td class="py-4 font-medium text-slate-700">
                         <div class="flex items-center">
                             @if($user->profile_picture)
-                                <img src="{{ Storage::url($user->profile_picture) }}" class="h-8 w-8 rounded-full object-cover border border-slate-200 mr-3">
+                                <img src="{{ asset('storage/profiles/' . $user->profile_picture) }}" class="h-8 w-8 rounded-full object-cover border border-slate-200 mr-3">
                             @else
                                 <div class="h-8 w-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold mr-3">
                                     {{ substr($user->name, 0, 1) }}
@@ -80,7 +80,7 @@
                         <div class="p-6 space-y-4">
                             <div class="flex items-center space-x-4 mb-4">
                                 @if($user->profile_picture)
-                                    <img src="{{ Storage::url($user->profile_picture) }}" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-200">
+                                    <img src="{{ asset('storage/profiles/' . $user->profile_picture) }}" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-200">
                                 @else
                                     <div class="h-16 w-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl font-bold">
                                         {{ substr($user->name, 0, 1) }}
@@ -122,6 +122,26 @@
                                 <div class="col-span-2">
                                     <span class="block text-slate-400 mb-1">Bio</span>
                                     <p class="font-medium text-slate-700 bg-slate-50 p-3 rounded-lg">{{ $user->bio ?? 'Belum ada bio.' }}</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <span class="block text-slate-400 mb-1">Pengaturan Notifikasi</span>
+                                    <div class="bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
+                                        @php
+                                            $ns = is_string($user->notification_settings) ? json_decode($user->notification_settings, true) : $user->notification_settings;
+                                            $settings = [
+                                                'Jeda Semua' => $ns['pause_all'] ?? false,
+                                                'Berita' => $ns['news'] ?? true,
+                                                'Cuaca' => $ns['weather'] ?? true,
+                                                'Promo' => $ns['shop'] ?? true,
+                                                'Sistem' => $ns['system'] ?? true,
+                                            ];
+                                        @endphp
+                                        @foreach($settings as $label => $isActive)
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600' }}">
+                                                {{ $label }}: {{ $isActive ? 'On' : 'Off' }}
+                                            </span>
+                                        @endforeach
+                                    </div>
                                 </div>
                             </div>
                         </div>

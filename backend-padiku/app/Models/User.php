@@ -28,6 +28,7 @@ class User extends Authenticatable
         'longitude',
         'bio',
         'profile_picture',
+        'notification_settings',
     ];
 
     /**
@@ -48,5 +49,6 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'notification_settings' => 'array',
     ];
 }

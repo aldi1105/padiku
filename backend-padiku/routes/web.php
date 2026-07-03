@@ -64,7 +64,30 @@ Route::middleware('auth')->prefix('admin')->group(function () {
     Route::get('/products', function () {
         $products = \App\Models\Product::paginate(10);
         return view('admin.products.index', compact('products'));
-    });
+    })->name('admin.products.index');
+
+    Route::post('/products', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|max:2048'
+        ]);
+
+        $data = $request->except('image');
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = time() . '_' . rand(1000, 9999) . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('public/products', $filename);
+            $data['image'] = $filename;
+        }
+
+        \App\Models\Product::create($data);
+
+        return back()->with('success', 'Produk berhasil ditambahkan!');
+    })->name('admin.products.store');
 
     Route::get('/orders', function () {
         $orders = \App\Models\Order::with('user')->orderBy('created_at', 'desc')->paginate(10);

@@ -1,3 +1,4 @@
+import 'package:padiku/services/auth_services.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -30,7 +31,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
 
   Future<void> _fetchNews() async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.100.56:8000/api/news'));
+      final response = await http.get(Uri.parse('${AuthServices.baseUrl}/api/news'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
@@ -61,7 +62,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
     });
     
     try {
-      final response = await http.get(Uri.parse('http://192.168.100.56:8000/api/news?refresh=1'));
+      final response = await http.get(Uri.parse('${AuthServices.baseUrl}/api/news?refresh=1'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && mounted) {
