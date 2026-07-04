@@ -28,7 +28,7 @@
                 <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                     <td class="py-4">
                         @if($product->image)
-                            <img src="{{ asset('storage/products/' . $product->image) }}" alt="{{ $product->name }}" class="w-12 h-12 object-cover rounded-lg shadow-sm">
+                            <img src="{{ Str::startsWith($product->image, ['http://', 'https://']) ? $product->image : asset('storage/products/' . $product->image) }}" alt="{{ $product->name }}" class="w-12 h-12 object-cover rounded-lg shadow-sm">
                         @else
                             <div class="w-12 h-12 rounded-lg shadow-sm bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xl">
                                 {{ strtoupper(substr($product->name, 0, 1)) }}
