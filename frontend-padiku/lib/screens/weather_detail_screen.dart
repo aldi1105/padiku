@@ -65,11 +65,12 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
           setState(() {
             _dailyForecastData = data['data']['daily'] ?? [];
             _hourlyForecastData = data['data']['hourly'] ?? [];
-            _isLoadingForecast = false;
           });
         }
       }
     } catch (e) {
+      // ignore
+    } finally {
       if (mounted) setState(() => _isLoadingForecast = false);
     }
   }
@@ -221,7 +222,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${widget.temp}Â°',
+                  '${widget.temp}°',
                   style: GoogleFonts.outfit(
                     fontSize: 80,
                     fontWeight: FontWeight.w900,
@@ -250,9 +251,9 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          Expanded(child: _tempCapsule('Tertinggi: 35Â°C')),
+          Expanded(child: _tempCapsule('Tertinggi: 35°C')),
           const SizedBox(width: 12),
-          Expanded(child: _tempCapsule('Terendah: 24Â°C')),
+          Expanded(child: _tempCapsule('Terendah: 24°C')),
         ],
       ),
     );
@@ -330,7 +331,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '${data['temperature']}Â°C',
+                  '${data['temperature']}°C',
                   style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
                 ),
               ],
@@ -410,7 +411,7 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                     child: _dailyForecastCard(
                       isToday ? 'Hari Ini' : dayName,
                       'http://openweathermap.org/img/wn/${day['icon']}@2x.png',
-                      '${day['temperature']}Â°C',
+                      '${day['temperature']}°C',
                       day['description'],
                       isToday,
                     ),

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "612199390920",
+    "project_id": "padiku-f53dd",
+    "storage_bucket": "padiku-f53dd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612199390920:android:55af9ee7009a534de0cffd",
+        "android_client_info": {
+          "package_name": "com.padiku.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA96DbuQ9oi0kXvyCj2GaGRoDPAzTCPfjs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

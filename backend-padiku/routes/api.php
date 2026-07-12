@@ -60,8 +60,8 @@ Route::get('/news', function (Request $request) {
         Illuminate\Support\Facades\Cache::forget('news_cache');
     }
     
-    return Illuminate\Support\Facades\Cache::remember('news_cache', 600, function () { // Cache selama 10 menit
-        try {
+    try {
+        $items = Illuminate\Support\Facades\Cache::remember('news_cache', 600, function () { // Cache selama 10 menit
             $sources = [
                 'https://news.google.com/rss/search?q=pertanian+karawang&hl=id&gl=ID&ceid=ID:id', // Karawang
                 'https://www.cnnindonesia.com/ekonomi/rss', // CNN Nasional
@@ -72,10 +72,9 @@ Route::get('/news', function (Request $request) {
             $keywords = ['padi', 'beras', 'gabah', 'sawah', 'petani', 'panen', 'pupuk', 'bulog', 'pertanian', 'pangan', 'kementan', 'karawang'];
             $items = [];
             
-            // Ambil semua sumber RSS secara paralel (asinkron) dengan timeout 3 detik
             $responses = Illuminate\Support\Facades\Http::pool(function (Illuminate\Http\Client\Pool $pool) use ($sources) {
                 return array_map(function ($source) use ($pool) {
-                    return $pool->timeout(3)->connectTimeout(3)->get($source);
+                    return $pool->withOptions(['verify' => false])->timeout(10)->connectTimeout(10)->get($source);
                 }, $sources);
             });
             
@@ -156,17 +155,23 @@ Route::get('/news', function (Request $request) {
             // Ambil maksimal 20 berita
             $items = array_slice($items, 0, 20);
 
-            return response()->json([
-                'success' => true,
-                'data' => $items
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengambil berita: ' . $e->getMessage()
-            ], 500);
-        }
-    });
+            if (empty($items)) {
+                throw new \Exception("Tidak ada berita yang berhasil diambil (mungkin timeout).");
+            }
+
+            return $items;
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $items
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengambil berita: ' . $e->getMessage()
+        ], 500);
+    }
 });
 // Rice varieties endpoint
 Route::get('/rice-varieties', [\App\Http\Controllers\RiceVarietyController::class, 'apiIndex']);
@@ -736,6 +741,29 @@ Route::middleware('auth:sanctum')->group(function () {
             'success' => true,
             'message' => 'Hasil scan berhasil dicatat',
             'data' => $disease
+        ]);
+    });
+    
+    // Endpoint untuk update FCM Token
+    Route::post('/update-fcm-token', function (Request $request) {
+        $validator = Validator::make($request->all(), [
+            'fcm_token' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        $user = $request->user();
+        $user->fcm_token = $request->fcm_token;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'FCM Token updated successfully'
         ]);
     });
     

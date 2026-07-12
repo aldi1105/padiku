@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../widgets/rice_plant_widget.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'register_screen.dart';
 import 'main_navigation.dart';
 import 'splash_screen.dart';
@@ -407,6 +408,32 @@ class _LoginScreenState extends State<LoginScreen>
                   await prefs.setBool('isLoggedIn', true);
                   await prefs.setString('token', data['token']);
                   await prefs.setString('userName', data['data']['name']);
+
+                  // Update FCM token to backend
+                  try {
+                    String? fcmToken = await FirebaseMessaging.instance.getToken();
+                    if (fcmToken != null) {
+                      final fcmResp = await http.post(
+                        Uri.parse('$baseUrl/api/update-fcm-token'),
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': 'Bearer ${data['token']}',
+                        },
+                        body: jsonEncode({
+                          'fcm_token': fcmToken,
+                        }),
+                      );
+                      if (fcmResp.statusCode == 200) {
+                        // FCM token sent successfully (silent)
+                      } else {
+                        print('FCM API Error: ${fcmResp.statusCode}');
+                      }
+                    } else {
+                      print('Gagal mendapatkan FCM Token (Null)');
+                    }
+                  } catch (e) {
+                    print('Failed to update FCM token: $e');
+                  }
                   
                   if (!context.mounted) return;
                   Navigator.pushReplacement(

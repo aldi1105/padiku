@@ -63,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _startLocationTracking() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled(); 
       if (!serviceEnabled) {
         _fetchWeather();
         return;
@@ -181,12 +181,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _weatherTemp = data['data']['temperature'].toString();
               _weatherDesc = data['data']['description'];
               _weatherIcon = data['data']['icon'];
-              _isLoadingWeather = false;
             });
           }
         }
       }
     } catch (e) {
+      // ignore
+    } finally {
       if (mounted) setState(() => _isLoadingWeather = false);
     }
   }
@@ -216,7 +217,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final List<dynamic> allNews = data['data'];
           setState(() {
             _trendingNews = allNews.take(3).toList();
-            _isLoadingNews = false;
           });
         }
       }
@@ -229,11 +229,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _weatherTemp = data['data']['temperature'].toString();
             _weatherDesc = data['data']['description'];
             _weatherIcon = data['data']['icon'];
-            _isLoadingWeather = false;
           });
         }
       }
     } catch (e) {
+      // ignore
+    } finally {
       if (mounted) {
         setState(() {
           _isLoadingNews = false;
@@ -254,12 +255,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             setState(() {
               // Ambil 3 berita saja untuk halaman utama
               _trendingNews = allNews.take(3).toList();
-              _isLoadingNews = false;
             });
           }
         }
       }
     } catch (e) {
+      // ignore
+    } finally {
       if (mounted) setState(() => _isLoadingNews = false);
     }
   }
@@ -457,7 +459,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                       const SizedBox(width: 6),
                       Text(
-                        '$_weatherTempÂ°C',
+                        '$_weatherTemp°C',
                         style: GoogleFonts.outfit(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
@@ -964,7 +966,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 16),
               FittedBox(
                 child: Text(
-                  '$_weatherTempÂ°C',
+                  '$_weatherTemp°C',
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontSize: 42,

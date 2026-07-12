@@ -24,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   bool _obscureConfirm = true;
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   late AnimationController _animController;
@@ -51,6 +52,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     _animController.dispose();
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
@@ -242,6 +244,14 @@ class _RegisterScreenState extends State<RegisterScreen>
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 18),
+          // Phone
+          _buildField(
+            controller: _phoneController,
+            label: 'Nomor HP',
+            hint: 'cth: 081234567890',
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 18),
           // Password
           _buildField(
             controller: _passwordController,
@@ -284,10 +294,11 @@ class _RegisterScreenState extends State<RegisterScreen>
               // Validasi Frontend
               final name = _nameController.text.trim();
               final email = _emailController.text.trim();
+              final phone = _phoneController.text.trim();
               final password = _passwordController.text;
               final confirm = _confirmController.text;
 
-              if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
+              if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty || confirm.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Semua kolom wajib diisi!')),
                 );
@@ -328,6 +339,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   body: jsonEncode({
                     'name': name,
                     'email': email,
+                    'phone': phone,
                     'password': password,
                   }),
                 );
